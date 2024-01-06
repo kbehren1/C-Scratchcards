@@ -4,8 +4,51 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 const std::string numSearch = "0123456789";
+
+bool charCompare(char character, std::string otherChars) {
+    bool foundChar = false;
+
+    for (char i : otherChars) {
+        if (i == character) {
+            foundChar = true;
+            break;
+        }
+    }
+
+    return foundChar;
+}
+
+void createNumArray(std::vector<int>& nums, std::string numsStr) {
+
+    std::string buildNum = "";
+
+    for (char i : numsStr) {
+        if (charCompare(i, numSearch))
+            buildNum += i;
+        else if (buildNum != "") {
+            nums.push_back(std::stoi(buildNum));
+            buildNum = "";
+        }
+    }
+
+    if (buildNum != "") nums.push_back(std::stoi(buildNum));
+}
+
+int calcPoints(std::vector<int> winningNums, std::vector<int> myNums) {
+    int points = 0;
+    for (int i : winningNums) {
+        for (int j : myNums) {
+            if (i == j) {
+                points = (points == 0) ? 1 : points * 2;
+                break;
+            }
+        }
+    }
+    return points;
+}
 
 int main()
 {
@@ -15,50 +58,18 @@ int main()
     std::ifstream Scratchcard("Scratchcards.txt");
 
     while (std::getline(Scratchcard, input)) {
-        int winningNums[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-        int myNums[25] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        std::vector<int> winningNums { };
+        std::vector<int> myNums { };
+
         int points = 0;
-        size_t arrayIterator = 0;
 
-        size_t startPos = input.find_first_of(':');
+        std::string winningNumsStr = input.substr(input.find_first_of(':')+1, (input.find_first_of('|') - (input.find_first_of(':')+1)));
+        std::string myNumsStr = input.substr(input.find_first_of('|')+1, std::string::npos);
 
-        while (startPos < input.find_first_of('|')) {
-            std::string buildNum = "";
-            startPos = input.find_first_of(numSearch, startPos);
-            while (input[startPos] != ' ') {
-                buildNum += input[startPos];
-                startPos++;
-            }
-            winningNums[arrayIterator] = std::stoi(buildNum);
-            arrayIterator++;
+        createNumArray(winningNums, winningNumsStr);
+        createNumArray(myNums, myNumsStr);
 
-            if (input.find_first_of('|', startPos) < input.find_first_of(numSearch, startPos))
-                startPos = input.find_first_of('|', startPos);
-        }
-
-        arrayIterator = 0;
-
-        while (startPos < input.size()) {
-            std::string buildNum = "";
-            startPos = input.find_first_of(numSearch, startPos);
-            while (input[startPos] != ' ' && startPos < input.size()) {
-                buildNum += input[startPos];
-                startPos++;
-            }
-            myNums[arrayIterator] = std::stoi(buildNum);
-            arrayIterator++;
-        }
-
-        for (int i = 0; i < sizeof(winningNums) / sizeof(int); i++) {
-            for (int j = 0; j < sizeof(myNums) / sizeof(int); j++) {
-                if (winningNums[i] == myNums[j]) {
-                    if (points == 0) points = 1; else points *= 2;
-                    break;
-                }
-            }
-        }
-
-        totalPoints += points;
+        totalPoints += calcPoints(winningNums, myNums);
     }
 
     std::cout << "The total points are worth " << totalPoints << '!';
