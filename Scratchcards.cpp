@@ -8,70 +8,136 @@
 
 const std::string numSearch = "0123456789";
 
-bool charCompare(char character, std::string otherChars) {
-    bool foundChar = false;
+class Scratchcard {
+private: 
+    std::vector<int> winningNums{};
+    std::vector<int> nums{};
+    int amountOfWinningNumbers;
+    int points;
+    int id;
+    void incrementWinningNumbers() { amountOfWinningNumbers++; }
+    void setPoints(int number) { points = number; }
+    int copies;
 
-    for (char i : otherChars) {
-        if (i == character) {
-            foundChar = true;
-            break;
-        }
-    }
+    bool charCompare(char character, std::string otherChars) {
+        bool foundChar = false;
 
-    return foundChar;
-}
-
-void createNumArray(std::vector<int>& nums, std::string numsStr) {
-
-    std::string buildNum = "";
-
-    for (char i : numsStr) {
-        if (charCompare(i, numSearch))
-            buildNum += i;
-        else if (buildNum != "") {
-            nums.push_back(std::stoi(buildNum));
-            buildNum = "";
-        }
-    }
-
-    if (buildNum != "") nums.push_back(std::stoi(buildNum));
-}
-
-int calcPoints(std::vector<int> winningNums, std::vector<int> myNums) {
-    int points = 0;
-    for (int i : winningNums) {
-        for (int j : myNums) {
-            if (i == j) {
-                points = (points == 0) ? 1 : points * 2;
+        for (char i : otherChars) {
+            if (i == character) {
+                foundChar = true;
                 break;
             }
         }
+
+        return foundChar;
     }
-    return points;
+public:
+
+    Scratchcard(int idNum) {
+        id = idNum;
+        amountOfWinningNumbers = 0;
+        points = 0;
+        copies = 1;
+    }
+
+    void calcPoints() {
+        int points = 0;
+        for (int i : winningNums) {
+            for (int j : nums) {
+                if (i == j) {
+                    points = (points == 0) ? 1 : points * 2;
+                    incrementWinningNumbers();
+                    break;
+                }
+            }
+        }
+        setPoints(points);
+    }
+
+    void addWinningCardNums(std::string numsStr) {
+        std::string buildNum = "";
+
+        for (char i : numsStr) {
+            if (charCompare(i, numSearch))
+                buildNum += i;
+            else if (buildNum != "") {
+                winningNums.push_back(std::stoi(buildNum));
+                buildNum = "";
+            }
+        }
+
+        if (buildNum != "")
+            winningNums.push_back(std::stoi(buildNum));
+    }
+
+    void addMyCardNums(std::string numsStr) {
+        std::string buildNum = "";
+
+        for (char i : numsStr) {
+            if (charCompare(i, numSearch))
+                buildNum += i;
+            else if (buildNum != "") {
+                nums.push_back(std::stoi(buildNum));
+                buildNum = "";
+            }
+        }
+
+        if (buildNum != "") {
+            nums.push_back(std::stoi(buildNum));
+        }
+    }
+
+    int getWinningNumbers() { return amountOfWinningNumbers; }
+    int getWinningNumElement(int element) { return winningNums.at(element); }
+    int getNumElement(int element) { return nums.at(element); }
+    int getPoints() { return points; }
+    int getID() { return id; }
+    int getCopies() { return copies; }
+    void adjustCopies(int num) { copies += num; }
+};
+
+bool inRange(int num, int beginRange, int endRange) {
+    return (num > beginRange && num < endRange) ? true : false;
 }
 
 int main()
 {
     int totalPoints = 0;
+    int scratchcardID = 0;
+    int totalScratchcards = 0;
+
     std::string input = "";
+    std::vector<Scratchcard> cards{ };
 
-    std::ifstream Scratchcard("Scratchcards.txt");
+    std::ifstream ScratchcardFile("Scratchcards.txt");
 
-    while (std::getline(Scratchcard, input)) {
-        std::vector<int> winningNums { };
-        std::vector<int> myNums { };
-
-        int points = 0;
+    while (std::getline(ScratchcardFile, input)) {
+        scratchcardID++;
+        Scratchcard newScratchCard = Scratchcard(scratchcardID);
 
         std::string winningNumsStr = input.substr(input.find_first_of(':')+1, (input.find_first_of('|') - (input.find_first_of(':')+1)));
         std::string myNumsStr = input.substr(input.find_first_of('|')+1, std::string::npos);
 
-        createNumArray(winningNums, winningNumsStr);
-        createNumArray(myNums, myNumsStr);
+        newScratchCard.addWinningCardNums(winningNumsStr);
+        newScratchCard.addMyCardNums(myNumsStr);
+        newScratchCard.calcPoints();
 
-        totalPoints += calcPoints(winningNums, myNums);
+        cards.push_back(newScratchCard);
+
+        totalPoints += newScratchCard.getPoints();
     }
 
-    std::cout << "The total points are worth " << totalPoints << '!';
+    for (int i = 0; i < cards.size(); i++) {
+        totalScratchcards += cards[i].getCopies();
+
+        if (cards[i].getWinningNumbers() == 0 && cards[i].getCopies() == 0)
+            break;
+
+        for (int j = i+1; j <= i + cards[i].getWinningNumbers(); j++)
+            cards[j].adjustCopies(cards[i].getCopies());
+    }
+
+    std::cout << "The total points are worth " << totalPoints << "!\n";
+    std::cout << "The total scratchcards are " << totalScratchcards << '!';
 }
 
